@@ -1,0 +1,81 @@
+---
+
+- hosts: localhost
+  vars_files:
+    - ../vars/redelk.yml
+  gather_facts: false
+  tags: [elkserver]
+
+  tasks:
+    # There should only be RedElk server instance per engagement.
+    - name: RE Sever Count check
+      vars:
+        re_count: "{{ groups['redelk_server'] | length }}"
+      fail:
+        msg: You can only run on RedElk server per environment. Check your AWS instance tags and make sure 'redelk' is only applied to one for this keyword. RedElk server count {{re_count }}. Create an Ubuntu server in EC2 and give it a "Purpose" tag of "redelk".
+      when: re_count != '1'
+      tags: [elkserver_copy, elkserver_ec2, elkserver_install]
+
+    - name: Checking for template htpasswd.users
+      stat:
+        path: ../templates/htpasswd.users
+      register: htpasswd
+      tags: [elkserver_post_config]
+
+- hosts: redelk_server
+  vars_files:
+    - ../vars/redelk.yml
+  gather_facts: false
+  become: true
+  tags: [elkserver]
+
+  tasks:
+    - name: Copying elkserver.tgz
+      copy:
+        src: /tmp/redelk_latest/elkserver.tgz
+        dest: /tmp
+      tags: [elkserver_copy]
+
+    - name: Extracting elkserver.tgz
+      shell: mkdir -p /tmp/elkserver && tar -zxvf /tmp/elkserver.tgz -C /tmp/elkserver --strip-components=1
+      args:
+        warn: false
+      tags: [elkserver_extract]
+
+    - name: Installing RedElk
+      command:
+        cmd: ./install-elkserver.sh
+        chdir: /tmp/elkserver
+      register: install_output
+      ignore_errors: true
+      tags: [elkserver_install]
+
+    - name: Checking for failures
+      fail:
+        msg: "Error occurred. Check /tmp/elkserver/redelk-install.log for details."
+      when: '"ERROR" in install_output.stdout'
+      tags: [elkserver_install]
+
+    - debug:
+        msg: "{{ inventory_hostname }}"
+      tags: [elkserver_post_config]
+
+    - name: Copying getremotelogs.sh
+      template:
+        src: ../templates/elkserver_cron_redelk.j2
+        dest: /etc/cron.d/redelk
+      tags: [elkserver_post_config]
+
+    - name: Copying htpasswd.users
+      copy:
+        src: ../templates/htpasswd.users
+        dest: /etc/nginx/htpasswd.users
+      when: htpasswd.stat.exists is defined
+      tags: [elkserver_post_config]
+
+    - name: Restarting nginx
+      service:
+        name: nginx
+        state: restarted
+      when: htpasswd.stat.exists is defined
+      tags: [elkserver_post_config]

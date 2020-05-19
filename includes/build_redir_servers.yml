@@ -1,0 +1,56 @@
+---
+
+- hosts: redirectors
+  vars_files:
+    - ../vars/redelk.yml
+  gather_facts: true
+  become: true
+  tags: [redirs]
+
+  tasks:
+    - name: Copying redirs.tgz
+      copy:
+        src: /tmp/redelk_latest/redirs.tgz
+        dest: /tmp
+      tags: [redir_copy]
+
+    - name: Extracting redir.tgz
+      shell: mkdir -p /tmp/redir && tar -zxvf /tmp/redirs.tgz -C /tmp/redir --strip-components=1
+      args:
+        warn: false
+      tags: [redir_extract]
+
+    - name: Installing Redir Package
+      command:
+        cmd: ./install-redir.sh {{ hostvars[inventory_hostname]['filebeat_id'] }} {{ scenario_name }} {{ redelk_server_host }}:{{ redelk_server_port }}
+        chdir: /tmp/redir
+      register: install_output
+      ignore_errors: true
+      tags: [redir_install]
+
+    - name: Checking for failures
+      fail:
+        msg: "Error occurred. Check /tmp/redir/redelk-install.log for details."
+      when: '"ERROR" in install_output.stdout'
+      tags: [redir_install]
+
+    - name: Check for Apache
+      stat:
+        path: /etc/apache2
+      register: apache_exists
+      tags: [redir_post_config]
+
+    - name: Copying Apache Conf
+      copy:
+        src: ../templates/apache_include.conf
+        dest: /etc/apache2/redelk_include.conf
+      when: apache_exists.stat.isdir is defined
+      tags: [redir_post_config]
+
+    - name: Updating Apache conf template
+      replace:
+        path: /etc/apache2/redelk_include.conf
+        regexp: '\|HOSTNAME\|'
+        replace: "{{ hostvars[inventory_hostname]['filebeat_id'] }}"
+      when: apache_exists.stat.isdir is defined
+      tags: [redir_post_config]

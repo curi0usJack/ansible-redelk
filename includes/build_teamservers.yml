@@ -1,0 +1,35 @@
+---
+
+- hosts: c2servers
+  vars_files:
+    - ../vars/redelk.yml
+  gather_facts: false
+  become: true
+  tags: [teamservers]
+
+  tasks:
+    - name: Copying teamservers.tgz
+      copy:
+        src: /tmp/redelk_latest/teamservers.tgz
+        dest: /tmp
+      tags: [teamserver_copy]
+
+    - name: Extracting teamserver.tgz
+      shell: mkdir -p /tmp/teamserver && tar -zxvf /tmp/teamservers.tgz -C /tmp/teamserver --strip-components=1
+      args:
+        warn: false
+      tags: [teamserver_extract]
+
+    - name: Installing Teamserver package
+      command:
+        cmd: ./install-teamserver.sh {{ hostvars[inventory_hostname]['filebeat_id'] }} {{ scenario_name }} {{ redelk_server_host }}:{{ redelk_server_port }}
+        chdir: /tmp/teamserver
+      register: install_output
+      ignore_errors: true
+      tags: [teamserver_install]
+
+    - name: Checking for failures
+      fail:
+        msg: "Error occurred. Check /tmp/teamserver/redelk-install.log for details."
+      when: '"ERROR" in install_output.stdout'
+      tags: [teamserver_install]

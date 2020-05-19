@@ -1,0 +1,50 @@
+---
+# RedElk Ansible Variables. The comments are here to help you. Please read them.
+#
+# If you are new to RedElk, start with the wiki here:
+# https://github.com/outflanknl/RedELK/wiki,
+#
+# then read this fantastic 2 part series by the Outflank crew here:
+# https://outflank.nl/blog/2019/02/14/introducing-redelk-part-1-why-we-need-it/.
+#
+#
+# Cobalt strike installation path. Do not include trailing slash
+cobaltstrike_install_dir: /root/tools/cobaltstrike
+
+# Scenario Name
+scenario_name: short_haul_c2
+
+# Redelk Server Host. This can be either an DNS name or IP address. Port 80 will need
+# to be open on this host.
+redelk_server_host: redelk.demoattack.com
+
+# Redelk Server Port: The port that RedElk receives data on. Default 5044. Be sure whatever
+# port you set this to is open on the firewall.
+redelk_server_port: 5044
+
+# ALARMS.JSON.CONF Settings. More information here:
+# https://outflank.nl/blog/2020/02/28/redelk-part-2-getting-you-up-and-running/
+alarm_verbosity: 0
+alarm_interval: 3600
+alarm_vtapikey: ""
+alarm_haapikey: ""
+alarm_smtpsrv: smtp-redelk.demoattack.com
+alarm_smtpport: 587
+alarm_smtpname: root
+alarm_smtppass: toor
+alarm_fromaddr: noreply@smtp-redelk.demoattack.com
+alarm_toaddr: alarms@redteam.com
+alarm_tempdir: /tmp
+
+# CERTS/CONFIG.CNF. Certificate settings that RedElk will use on the backend
+# for data transfer. More information here:
+# https://outflank.nl/blog/2020/02/28/redelk-part-2-getting-you-up-and-running/
+
+# CERT_C can only be 2 characters!
+cert_C: NV
+cert_ST: Gonna
+cert_L: Give
+cert_O: YouUp
+cert_OU: Never
+cert_CN: Gonna
+cert_email: let@youdown.com

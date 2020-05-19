@@ -1,0 +1,84 @@
+---
+
+- hosts: localhost
+  vars_files:
+    - ../vars/redelk.yml
+  gather_facts: false
+  tags: [prep]
+
+  tasks:
+    - name: Downloading Latest RedElk to /tmp
+      shell: curl -s https://api.github.com/repos/outflanknl/redelk/releases/latest | grep tarball_url | cut -d'"' -f4 | wget -O /tmp/redelk_latest.tgz -qi -
+      args:
+        warn: false
+      tags: [prep_download]
+
+    # Using tar command instead of unarchive module, which threw errors every time.
+    - name: Extracting
+      shell: mkdir -p /tmp/redelk_latest && tar -zxvf /tmp/redelk_latest.tgz -C /tmp/redelk_latest --strip-components=1
+      args:
+        warn: false
+      tags: [prep_extract]
+
+    - name: Updating certs/config.conf
+      lineinfile:
+        dest: /tmp/redelk_latest/certs/config.cnf
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+      with_items:
+        - {regexp: '^C = ', line: 'C = {{ cert_C }}'}
+        - {regexp: '^ST = ', line: 'ST = {{ cert_ST }}'}
+        - {regexp: '^L = ', line: 'L = {{ cert_L }}'}
+        - {regexp: '^O = ', line: 'O = {{ cert_O }}'}
+        - {regexp: '^OU = ', line: 'OU = {{ cert_OU }}'}
+        - {regexp: '^CN = ', line: 'CN = {{ cert_CN }}'}
+        - {regexp: '^emailAddress = ', line: 'emailAddress = {{ cert_email }}'}
+        - {regexp: '^DNS.1 = ', line: 'DNS.1 = {{ redelk_server_host }}'}
+        - {regexp: '^DNS.2 = ', line: ""}
+        - {regexp: '^IP.1 = ', line: ""}
+      tags: [prep_cert]
+
+    - name: Updating alarm.json.conf
+      lineinfile:
+        dest: /tmp/redelk_latest/elkserver/etc/redelk/alarm.json.conf
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+      with_items:
+        - {regexp: '^ "Verbosity', line: ' "Verbosity":"{{ alarm_verbosity }}",'}
+        - {regexp: '^ "interval', line: ' "interval":"{{ alarm_interval }}",'}
+        - {regexp: '^ "vt_apikey', line: ' "vt_apikey":"{{ alarm_vtapikey }}",'}
+        - {regexp: '^ "HybridAnalysis', line: ' "HybridAnalysisAPIKEY":"{{ alarm_haapikey }}",'}
+        - {regexp: '^ "smtpSrv', line: ' "smtpSrv":"{{ alarm_smtpsrv }}",'}
+        - {regexp: '^ "smtpPort', line: ' "smtpPort":"{{ alarm_smtpport }}",'}
+        - {regexp: '^ "smtpName', line: ' "smtpName":"{{ alarm_smtpname }}",'}
+        - {regexp: '^ "smtpPass', line: ' "smtpPass":"{{ alarm_smtppass }}",'}
+        - {regexp: '^ "fromAddr', line: ' "fromAddr":"{{ alarm_fromaddr }}",'}
+        - {regexp: '^ "toAddrs', line: ' "toAddrs":["{{ alarm_toaddr }}"],'}
+        - {regexp: '^ "tempDir', line: ' "tempDir":["{{ alarm_tempdir }}"],'}
+      tags: [prep_alarm]
+
+    - name: Updating RedElk cobaltstrike path
+      replace:
+        path: "{{ item.dest }}"
+        regexp: '\/root\/cobaltstrike'
+        replace: "{{ cobaltstrike_install_dir }}"
+      with_items:
+        - {dest: /tmp/redelk_latest/teamservers/filebeat/filebeat.yml}
+        - {dest: /tmp/redelk_latest/teamservers/scripts/copydownloads.sh}
+        - {dest: /tmp/redelk_latest/teamservers/cron.d/redelk}
+      tags: [prep_cobaltstrike]
+
+    - name: Executing RedElk init script.
+      command:
+        chdir: /tmp/redelk_latest
+        cmd: ./initial-setup.sh ./certs/config.cnf
+      register: exec_output
+      ignore_errors: true
+      tags: [prep_init]
+
+    - name: Checking for failures
+      fail:
+        msg: "Error occurred. Check /tmp/redelk_latest/redelk-initialsetup.log for details."
+      when: '"ERROR" in exec_output.stdout'
+      tags: [prep_init]
+

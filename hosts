@@ -1,0 +1,42 @@
+# Add Cobalt Strike team server IPs here. Note configure the filebeat_id
+# appropriately for each teamserver. I've given examples. The filebeat_id
+# is primarily used on the backend, but setting it here will help keep
+# things straight if you have to troubleshoot.
+#
+# Example Value:
+#
+# [c2servers]
+# 1.2.3.4 filebeat_id=c2server1
+# 5.6.7.8 filebeat_id=c2server2
+[c2servers]
+
+# All redirector/proxy IPs here. The filebeat_id must also be included.
+#
+# Example Value:
+#
+# [redirectors]
+# 2.3.4.5 filebeat_id=redir1
+# 3.4.5.6 filebeat_id=redir2
+[redirectors]
+
+# Add the RedElk server IP here. THERE CAN BE ONLY ONE! Note, if you're
+# using EC2 for your RedElk instance, it needs to be at minimum a t2.medium.
+# A micro instance won't work well with the ELK stack.
+[redelk_server]
+
+# This is where you'd set the private keys for each of the groups. This
+# will allow you to have combinations of on-prem vs cloud-based hosts.
+# Note you must have sudo privs on these systems. Of course, the pem file
+# can be named whatever you want, I just listed paths there as examples.
+# Same with users.
+[c2servers:vars]
+ansible_ssh_user=ubuntu
+ansible_ssh_private_key_file=/path/to/.ssh/c2servers.pem
+
+[redirectors:vars]
+ansible_ssh_user=ubuntu
+ansible_ssh_private_key_file=/path/to/.ssh/redirectors.pem
+
+[redelk_server:vars]
+ansible_ssh_user=ubuntu
+ansible_ssh_private_key_file=/path/to/.ssh/redelk_server.pem
