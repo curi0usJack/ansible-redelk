@@ -1,0 +1,13 @@
+---
+
+- name: Prepping RedElk locally
+  import_playbook: includes/redelk_prep.yml
+
+- name: Building the c2 servers
+  import_playbook: includes/build_teamservers.yml
+
+- name: Building the redirectors
+  import_playbook: includes/build_redir_servers.yml
+
+- name: Building the redelk server
+  import_playbook: includes/build_redelk_server.yml
