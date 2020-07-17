@@ -12,7 +12,7 @@ PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 # m h dom mon dow user  command
 #*/2 * * * * redelk /usr/share/redelk/bin/getremotelogs.sh $IP $HOSTNAME scponly
 {% for host in groups['c2servers'] -%}
-*/2 * * * * redelk /usr/share/redelk/bin/getremotelogs.sh {{ inventory_hostname }} scponly
+*/2 * * * * redelk /usr/share/redelk/bin/getremotelogs.sh {{ host }} {{ hostvars[host]['filebeat_id'] }} scponly
 {% endfor %}
 
 # Run update script for TOR exit nodes twice a day
