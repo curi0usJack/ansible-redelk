@@ -8,7 +8,7 @@
 
   tasks:
     - name: Downloading Latest RedElk to /tmp
-      shell: curl -s https://api.github.com/repos/outflanknl/redelk/releases/latest | grep tarball_url | cut -d'"' -f4 | wget -O /tmp/redelk_latest.tgz -qi -
+      shell: curl -s https://api.github.com/repos/outflanknl/redelk/releases/28679614 | grep tarball_url | cut -d'"' -f4 | wget -O /tmp/redelk_latest.tgz -qi -
       args:
         warn: false
       tags: [prep_download]
